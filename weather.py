@@ -21,9 +21,6 @@ async def make_nws_request(url: str) -> dict[str, Any] | None:
             return None
 
 
-
-
-
 # FORECAST 
 @mcp.tool(
     name="get_forecast_by_place",
@@ -39,7 +36,6 @@ async def get_forecast_by_place(place: str) -> str:
             r = await client.get(geo_url, timeout=20)
             r.raise_for_status()
             geo_data = r.json()
-            print(f"[DEBUG] Geo response: {geo_data}")
         except Exception:
             return "Geocoding failed. Try again with a valid US city name."
 
