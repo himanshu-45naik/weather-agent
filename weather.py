@@ -1,5 +1,6 @@
 from typing import Any
 import httpx
+from datetime import datetime
 from mcp.server.fastmcp import FastMCP
 
 mcp = FastMCP("weather")
@@ -7,9 +8,11 @@ mcp = FastMCP("weather")
 GEOCODING_URL = "https://geocoding-api.open-meteo.com/v1/search"
 FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
 
+# Weather codes -> Weather description
 WEATHER_CODES = {
     0: "Clear sky",
-    1: "Mainly clear", 2: "Partly cloudy", 3: "Overcast",
+    1: "Mainly clear", 
+    2: "Partly cloudy", 3: "Overcast",
     45: "Fog", 48: "Icy fog",
     51: "Light drizzle", 53: "Moderate drizzle", 55: "Dense drizzle",
     61: "Slight rain", 63: "Moderate rain", 65: "Heavy rain",
@@ -20,11 +23,11 @@ WEATHER_CODES = {
     95: "Thunderstorm", 96: "Thunderstorm with hail", 99: "Thunderstorm with heavy hail",
 }
 
-
+# Function to decode weathers
 def decode_weather(code: int) -> str:
     return WEATHER_CODES.get(code, f"Unknown (code {code})")
 
-
+# Get geocode for a city
 async def geocode(place: str) -> dict | None:
     city = place.split(",")[0].strip()
     try:
@@ -63,6 +66,7 @@ async def fetch_open_meteo(params: dict) -> dict | None:
         return None
 
 
+# Current weather tool
 @mcp.tool(
     name="get_current_weather",
     description="Get current weather for any city in the world by name."
@@ -94,6 +98,7 @@ async def get_current_weather(place: str) -> str:
     )
 
 
+# Forecast tool -> one api call gives max 16 Days forecast
 @mcp.tool(
     name="get_forecast_by_place",
     description=(

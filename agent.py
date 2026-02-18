@@ -55,7 +55,7 @@ async def main():
     print("\nWeather Agent\n")
 
     while True:
-        q = input("Ask (ALERTS/FORECAST/Exit) for a particular city: ")
+        q = input("Ask (ALERTS/FORECAST/exit) for a particular city: ")
         if q.lower() == "exit":
             break
 
