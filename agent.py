@@ -52,10 +52,10 @@ async def main():
         tools=tools
     )
 
-    print("\nUS Weather Agent\n")
+    print("\nWeather Agent\n")
 
     while True:
-        q = input("Ask (ALERTS/FORECAST) for a particular place in USA: ")
+        q = input("Ask (ALERTS/FORECAST/Exit) for a particular city: ")
         if q.lower() == "exit":
             break
 
