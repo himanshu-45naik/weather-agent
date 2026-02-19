@@ -1,7 +1,7 @@
 from typing import Any
 import httpx
 from mcp.server.fastmcp import FastMCP
-from models import ForecastInput
+from models import ForecastInput, WeatherCodes
 from pydantic import ValidationError
 
 mcp = FastMCP("weather")
@@ -10,23 +10,23 @@ GEOCODING_URL = "https://geocoding-api.open-meteo.com/v1/search"
 FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
 
 # Weather codes -> Weather description
-WEATHER_CODES = {
-    0: "Clear sky",
-    1: "Mainly clear", 
-    2: "Partly cloudy", 3: "Overcast",
-    45: "Fog", 48: "Icy fog",
-    51: "Light drizzle", 53: "Moderate drizzle", 55: "Dense drizzle",
-    61: "Slight rain", 63: "Moderate rain", 65: "Heavy rain",
-    71: "Slight snow", 73: "Moderate snow", 75: "Heavy snow",
-    77: "Snow grains",
-    80: "Slight showers", 81: "Moderate showers", 82: "Violent showers",
-    85: "Slight snow showers", 86: "Heavy snow showers",
-    95: "Thunderstorm", 96: "Thunderstorm with hail", 99: "Thunderstorm with heavy hail",
-}
+# WEATHER_CODES = {
+#     0: "Clear sky",
+#     1: "Mainly clear", 
+#     2: "Partly cloudy", 3: "Overcast",
+#     45: "Fog", 48: "Icy fog",
+#     51: "Light drizzle", 53: "Moderate drizzle", 55: "Dense drizzle",
+#     61: "Slight rain", 63: "Moderate rain", 65: "Heavy rain",
+#     71: "Slight snow", 73: "Moderate snow", 75: "Heavy snow",
+#     77: "Snow grains",
+#     80: "Slight showers", 81: "Moderate showers", 82: "Violent showers",
+#     85: "Slight snow showers", 86: "Heavy snow showers",
+#     95: "Thunderstorm", 96: "Thunderstorm with hail", 99: "Thunderstorm with heavy hail",
+# }
 
 # Function to decode weathers
-def decode_weather(code: int) -> str:
-    return WEATHER_CODES.get(code, f"Unknown (code {code})")
+# def decode_weather(code: int) -> str:
+#     return WEATHER_CODES.get(code, f"Unknown (code {code})")
 
 # Get geocode for a city
 async def geocode(place: str) -> dict | None:
@@ -70,6 +70,7 @@ async def fetch_open_meteo(params: dict) -> dict | None:
 
 
 # Current weather tool
+# Current weather tool
 @mcp.tool(
     name="get_current_weather",
     description="Get current weather for any city in the world by name."
@@ -82,7 +83,7 @@ async def get_current_weather(place: str) -> str:
     data = await fetch_open_meteo({
         "latitude": loc["latitude"],
         "longitude": loc["longitude"],
-        "current": "temperature_2m,windspeed_10m,precipitation,weathercode,relativehumidity_2m",
+        "current": "temperature_2m,wind_speed_10m,precipitation,weathercode,relativehumidity_2m",
         "timezone": "auto"
     })
 
@@ -90,13 +91,19 @@ async def get_current_weather(place: str) -> str:
         return "Weather data unavailable. Try again."
 
     c = data["current"]
-    code = c["weathercode"]
+
+    raw_code = c["weathercode"]
+    try:
+        condition = WeatherCodes(raw_code).name.replace("_", " ").title()
+    except ValueError:
+        condition = f"Unknown ({raw_code})"
+
     return (
         f"Current weather for {loc['name']}, {loc['country']}:\n"
-        f"Condition   : {decode_weather(code)} (code {code})\n"
+        f"Condition   : {condition}\n"
         f"Temperature : {c['temperature_2m']}°C\n"
         f"Humidity    : {c['relativehumidity_2m']}%\n"
-        f"Wind Speed  : {c['windspeed_10m']} km/h\n"
+        f"Wind Speed  : {c['wind_speed_10m']} km/h\n"
         f"Precipitation: {c['precipitation']} mm\n"
     )
 
@@ -130,7 +137,7 @@ async def get_forecast_by_place(place: str, start_date: str, end_date: str) -> s
     data = await fetch_open_meteo({
         "latitude": loc["latitude"],
         "longitude": loc["longitude"],
-        "daily": "temperature_2m_max,temperature_2m_min,precipitation_sum,windspeed_10m_max,weathercode",
+        "daily": "temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,weathercode",
         "start_date": data_inp.start_date.date().isoformat(),
         "end_date": data_inp.end_date.date().isoformat(),
         "timezone": "auto"
@@ -147,16 +154,21 @@ async def get_forecast_by_place(place: str, start_date: str, end_date: str) -> s
     ]
 
     for i, date in enumerate(daily["time"]):
-        code = daily["weathercode"][i]
+        raw_code = daily["weathercode"][i]
+        try:
+            condition = WeatherCodes(raw_code).name.replace("_", " ").title()
+        except ValueError:
+            condition = f"Unknown ({raw_code})"
         out.append(
-            f"{date}: {decode_weather(code)} (code {code}) | "
+            f"{date}: {condition} | "
             f"High {daily['temperature_2m_max'][i]}°C / "
             f"Low {daily['temperature_2m_min'][i]}°C | "
             f"Precipitation: {daily['precipitation_sum'][i]}mm | "
-            f"Max Wind: {daily['windspeed_10m_max'][i]} km/h"
+            f"Max Wind: {daily['wind_speed_10m_max'][i]} km/h"
         )
 
     return "\n".join(out)
+
 
 
 def main():
