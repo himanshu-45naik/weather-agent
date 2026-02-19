@@ -9,24 +9,6 @@ mcp = FastMCP("weather")
 GEOCODING_URL = "https://geocoding-api.open-meteo.com/v1/search"
 FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
 
-# Weather codes -> Weather description
-# WEATHER_CODES = {
-#     0: "Clear sky",
-#     1: "Mainly clear", 
-#     2: "Partly cloudy", 3: "Overcast",
-#     45: "Fog", 48: "Icy fog",
-#     51: "Light drizzle", 53: "Moderate drizzle", 55: "Dense drizzle",
-#     61: "Slight rain", 63: "Moderate rain", 65: "Heavy rain",
-#     71: "Slight snow", 73: "Moderate snow", 75: "Heavy snow",
-#     77: "Snow grains",
-#     80: "Slight showers", 81: "Moderate showers", 82: "Violent showers",
-#     85: "Slight snow showers", 86: "Heavy snow showers",
-#     95: "Thunderstorm", 96: "Thunderstorm with hail", 99: "Thunderstorm with heavy hail",
-# }
-
-# Function to decode weathers
-# def decode_weather(code: int) -> str:
-#     return WEATHER_CODES.get(code, f"Unknown (code {code})")
 
 # Get geocode for a city
 async def geocode(place: str) -> dict | None:
@@ -69,7 +51,6 @@ async def fetch_open_meteo(params: dict) -> dict | None:
         return None
 
 
-# Current weather tool
 # Current weather tool
 @mcp.tool(
     name="get_current_weather",
