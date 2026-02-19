@@ -108,6 +108,14 @@ async def get_current_weather(place: str) -> str:
     )
 )
 async def get_forecast_by_place(place: str, start_date: str, end_date: str) -> str:
+
+    # Date validation
+    try:
+        start_dt = datetime.strptime(start_date, "%Y-%m-%d")
+        end_dt = datetime.strptime(end_date, "%Y-%m-%d")
+    except ValueError:
+        return "Dates must be in YYYY-MM-DD format (example: 2026-02-18)"
+    
     loc = await geocode(place)
     if not loc:
         return f"Could not find '{place}'. Try a valid city name."
