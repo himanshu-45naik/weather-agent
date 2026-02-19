@@ -1,7 +1,8 @@
 from typing import Any
 import httpx
-from datetime import datetime
 from mcp.server.fastmcp import FastMCP
+from models import ForecastInput
+from pydantic import ValidationError
 
 mcp = FastMCP("weather")
 
@@ -30,6 +31,8 @@ def decode_weather(code: int) -> str:
 # Get geocode for a city
 async def geocode(place: str) -> dict | None:
     city = place.split(",")[0].strip()
+
+    # Get geocode of the input city
     try:
         async with httpx.AsyncClient(follow_redirects=True) as client:
             r = await client.get(
@@ -109,31 +112,39 @@ async def get_current_weather(place: str) -> str:
 )
 async def get_forecast_by_place(place: str, start_date: str, end_date: str) -> str:
 
-    # Date validation
     try:
-        start_dt = datetime.strptime(start_date, "%Y-%m-%d")
-        end_dt = datetime.strptime(end_date, "%Y-%m-%d")
-    except ValueError:
-        return "Dates must be in YYYY-MM-DD format (example: 2026-02-18)"
-    
-    loc = await geocode(place)
-    if not loc:
-        return f"Could not find '{place}'. Try a valid city name."
+        data_inp = ForecastInput(
+            place=place,
+            start_date=start_date,
+            end_date=end_date
+        )
+    except ValidationError as e:
+        return f"Invalid input:\n{e}"
 
+    # Get geocode of the city
+    loc = await geocode(data_inp.place)
+    if not loc:
+        return f"Could not find '{data_inp.place}'. Try a valid city name."
+
+    # fetch data
     data = await fetch_open_meteo({
         "latitude": loc["latitude"],
         "longitude": loc["longitude"],
         "daily": "temperature_2m_max,temperature_2m_min,precipitation_sum,windspeed_10m_max,weathercode",
-        "start_date": start_date,
-        "end_date": end_date,
+        "start_date": data_inp.start_date.date().isoformat(),
+        "end_date": data_inp.end_date.date().isoformat(),
         "timezone": "auto"
     })
 
     if not data:
         return "Forecast data unavailable. Try again."
 
-    daily = data["daily"]
-    out = [f"Forecast for {loc['name']}, {loc['country']} ({start_date} to {end_date}):"]
+    # Output data
+    daily = data.get("daily")
+    out = [
+        f"Forecast for {loc['name']}, {loc['country']} "
+        f"({data_inp.start_date.date()} to {data_inp.end_date.date()}):"
+    ]
 
     for i, date in enumerate(daily["time"]):
         code = daily["weathercode"][i]
